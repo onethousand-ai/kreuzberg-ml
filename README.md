@@ -1,2 +1,2 @@
 # kreuzberg-ml
-Toolbox for faster ML software prototyping
+Toolbox for faster ML prototypes construction and demonstration
