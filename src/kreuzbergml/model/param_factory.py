@@ -2,7 +2,12 @@ from abc import ABC, abstractmethod
 from typing import Dict, Iterable
 
 import numpy as np
-import sklearn
+import sklearn.ensemble
+import sklearn.linear_model
+import sklearn.neighbors
+import sklearn.neural_network
+import sklearn.svm
+import sklearn.tree
 
 
 class AbstractGridSearchParamsFactory(ABC):
@@ -48,7 +53,7 @@ class RFCParamsFactory(AbstractGridSearchParamsFactory):
     def get_param_dict(self) -> Dict[str, Iterable]:
         param_dict = {
             "max_depth": list(range(4,10)),
-            "n_estimator": np.logspace(3, 10, num=8, base=2),
+            "n_estimators": [2**i for i in range(3, 10)],
             "min_samples_split": [2, 3, 5, 10],
             "min_samples_leaf": [1, 2, 4],
             "bootstrap": [True, False],
