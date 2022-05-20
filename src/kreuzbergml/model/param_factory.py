@@ -62,10 +62,9 @@ class SVCParamsFactory(AbstractGridSearchParamsFactory):
 
     def get_param_dict(self) -> Dict[str, Iterable]:
         param_dict = {
-            "kernel": ["rbf"],
-            "gamma": [1, 0.1, 0.01, 0.001, 0.0001],
-            "C": [0.1, 1, 10, 100, 1000],
-            "probability": [True, False],
+            "kernel": ["rbf", "poly", "sigmoid"],
+            "gamma": [1, 0.1, 0.01, 0.001],
+            "C": [0.1, 1, 10, 100],
         }
         return param_dict
 
@@ -92,5 +91,18 @@ class MLPCParamsFactory(AbstractGridSearchParamsFactory):
             "solver": ["sgd", "adam"],
             "alpha": [0.0001, 0.001, 0.01, 0.05],
             "learning_rate": ["constant", "adaptive"],
+        }
+        return param_dict
+
+class DTCParamsFactory(AbstractGridSearchParamsFactory):
+    def get_model_class(self):
+        return sklearn.tree.DecisionTreeClassifier
+
+    def get_param_dict(self) -> Dict[str, Iterable]:
+        param_dict = {
+            "criterion": ["gini", "entropy"],
+            "max_depth": list(range(3, 10)),
+            "min_samples_split": list(range(2, 10)),
+            "min_samples_leaf": list(range(1, 5)),
         }
         return param_dict
