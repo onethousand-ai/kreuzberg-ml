@@ -106,3 +106,16 @@ class DTCParamsFactory(AbstractGridSearchParamsFactory):
             "min_samples_leaf": list(range(1, 5)),
         }
         return param_dict
+
+class KNCParamsFactory(AbstractGridSearchParamsFactory):
+    def get_model_class(self):
+        return sklearn.neighbors.KNeighborsClassifier
+
+    def get_param_dict(self) -> Dict[str, Iterable]:
+        param_dict = {
+            "n_neighbors": list(range(1, 30, 3)),
+            "p": list(range(1,5)),
+            "leaf_size": list(range(1, 50, 5)),
+            "weights": ["uniform", "distance"],
+        }
+        return param_dict
