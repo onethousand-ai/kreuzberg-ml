@@ -55,3 +55,28 @@ class RFCParamsFactory(AbstractGridSearchParamsFactory):
             "criterion": ["gini", "entropy"],
         }
         return param_dict
+
+class SVCParamsFactory(AbstractGridSearchParamsFactory):
+    def get_model_class(self):
+        return sklearn.svm.SVC
+
+    def get_param_dict(self) -> Dict[str, Iterable]:
+        param_dict = {
+            "kernel": ["rbf"],
+            "gamma": [1, 0.1, 0.01, 0.001, 0.0001],
+            "C": [0.1, 1, 10, 100, 1000],
+            "probability": [True, False],
+        }
+        return param_dict
+
+class LinSVCParamsFactory(AbstractGridSearchParamsFactory):
+    def get_model_class(self):
+        return sklearn.svm.LinearSVC
+
+    def get_param_dict(self) -> Dict[str, Iterable]:
+        param_dict = {
+            "penalty": ["l1", "l2"],
+            "dual": [True, False],
+            "C": [1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1, 10, 100, 1000, 10000, 100000],
+        }
+        return param_dict
