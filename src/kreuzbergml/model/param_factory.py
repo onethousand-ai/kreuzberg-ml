@@ -22,7 +22,7 @@ class L2RegularizedLRParamsFactory(AbstractGridSearchParamsFactory):
     def get_param_dict(self) -> Dict[str, Iterable]:
         param_dict = {
             "penalty": ["l2"],
-            "solver": ["lbfgs", "liblinear"],
+            "solver": ["lbfgs"],
             "C": list(range(11)),
         }
         return param_dict
@@ -48,7 +48,7 @@ class RFCParamsFactory(AbstractGridSearchParamsFactory):
     def get_param_dict(self) -> Dict[str, Iterable]:
         param_dict = {
             "max_depth": list(range(4,10)),
-            "n_estimator": [8, 16, 32, 64, 100, 200, 500, 1000],
+            "n_estimator": np.logspace(3, 10, num=8, base=2),
             "min_samples_split": [2, 3, 5, 10],
             "min_samples_leaf": [1, 2, 4],
             "bootstrap": [True, False],
@@ -63,8 +63,8 @@ class SVCParamsFactory(AbstractGridSearchParamsFactory):
     def get_param_dict(self) -> Dict[str, Iterable]:
         param_dict = {
             "kernel": ["rbf", "poly", "sigmoid"],
-            "gamma": [1, 0.1, 0.01, 0.001],
-            "C": [0.1, 1, 10, 100],
+            "gamma": np.logspace(-3, 1, num=5),
+            "C": np.logspace(-1, 2, num=4),
         }
         return param_dict
 
@@ -76,7 +76,7 @@ class LinSVCParamsFactory(AbstractGridSearchParamsFactory):
         param_dict = {
             "penalty": ["l1", "l2"],
             "dual": [True, False],
-            "C": [1e-5, 1e-4, 1e-3, 1e-2, 0.1, 1, 10, 100, 1000, 10000, 100000],
+            "C": np.logspace(-5,5, num=11),
         }
         return param_dict
 
@@ -88,8 +88,7 @@ class MLPCParamsFactory(AbstractGridSearchParamsFactory):
         param_dict = {
             "hidden_layer_sizes": [(10,), (20,), (100,), (10, 30, 10), (50,50,50), (50,100,50)],
             "activation": ["tanh", "relu", "logistic"],
-            "solver": ["sgd", "adam"],
-            "alpha": [0.0001, 0.001, 0.01, 0.05],
+            "alpha": np.logspace(-4,-2, num=7),
             "learning_rate": ["constant", "adaptive"],
         }
         return param_dict
