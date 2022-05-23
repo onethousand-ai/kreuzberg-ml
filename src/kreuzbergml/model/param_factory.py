@@ -53,11 +53,9 @@ class RFCParamsFactory(AbstractGridSearchParamsFactory):
     def get_param_dict(self) -> Dict[str, Iterable]:
         param_dict = {
             "max_depth": list(range(4,10)),
-            "n_estimators": [2**i for i in range(3, 10)],
+            "n_estimators": [2**i for i in range(3, 7)],
             "min_samples_split": [2, 3, 5, 10],
             "min_samples_leaf": [1, 2, 4],
-            "bootstrap": [True, False],
-            "criterion": ["gini", "entropy"],
         }
         return param_dict
 
