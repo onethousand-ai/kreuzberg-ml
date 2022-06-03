@@ -2,8 +2,7 @@ from enum import Enum, auto
 from logging import getLogger
 from typing import List, Optional, Union
 
-from pandas import (DataFrame, DatetimeIndex, Index, PeriodIndex, Series,
-                    TimedeltaIndex, date_range, period_range)
+from pandas import DataFrame, DatetimeIndex, Index, PeriodIndex, date_range, period_range
 
 logger = getLogger(__name__)
 
