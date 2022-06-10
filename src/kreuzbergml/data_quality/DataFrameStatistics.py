@@ -7,9 +7,6 @@ logger = getLogger(__name__)
 
 
 class DataFrameType(Enum):
-    """
-    Supported dataframe types.
-    """
     TABULAR = auto()
     TIMESERIES = auto()
 
@@ -17,34 +14,23 @@ class DataFrameType(Enum):
 class DataFrameStatistics:
 
     def __init__(self,
-                 df: DataFrame,
-                 random_state: Optional[int] = None,
-                 dtypes: dict = None,
-                 # severity: Optional[str] = None
+                 df: DataFrame
                  ):
         self._df = df
-        # self._df_type = None
-        # self._warnings = []
-        # self._dtypes = dtypes
 
     @property
     def df(self):
-        "Target of data quality checks."
         return self._df
 
     def _count_nulls(self, col: Union[List[str], str, None] = None):#, perc=False):
         """
-
         :param col: column name if provided only counts null in that column
         :return:
             count of null values,
             perc of null values
         """
-
         count = self.df.isnull().sum() if col is None else self.df[col].isnull().sum()
-        # null_values_percentage = count / len(self.df)
-
-        return count #, null_values_percentage
+        return count
 
     def get_null_cols(self, col: Optional[str] = None) -> List[str]:
         """
