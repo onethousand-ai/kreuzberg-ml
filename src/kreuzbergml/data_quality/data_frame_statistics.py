@@ -61,13 +61,14 @@ class DataFrameStatistics:
         dupes_dict = self.get_duplicate_columns()
         cols_with_dupes = len(dupes_dict.keys())
         null_cols = self.get_null_cols()
-        return dupes_dict, cols_with_dupes, null_cols
+        return {"dupes": dupes_dict, "cols_with_dupes": cols_with_dupes, "null_cols": null_cols}
 
     def print_report(self):
         """
         Prints a report containing all the warnings detected during the data quality analysis.
         """
-        dupes_dict, cols_with_dupes, null_cols = self.calc_statistics()
+        stats_dict = self.calc_statistics()
+        dupes_dict, cols_with_dupes, null_cols = stats_dict['dupes'], stats_dict['cols_with_dupes'], stats_dict['null_cols']
         is_periodindex_df = self.check_periodtime_index(self.df.index)
 
         print(f"\n\nDATA QUALITY REPORT\n")
@@ -84,7 +85,7 @@ class DataFrameStatistics:
                 count = self._count_nulls(col)
                 percentage_nulls = count / len(self.df)
 
-                print(f"Column '{col}' has {count} NaN values which comprise {round(percentage_nulls, 2)}% of all rows")
+                print(f"Column '{col}' has {count} NaN values which comprise {percentage_nulls:.2f} of all rows")
         else:
             print(f"No NaN values were found")
 
