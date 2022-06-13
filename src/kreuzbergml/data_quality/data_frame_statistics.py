@@ -23,7 +23,7 @@ class DataFrameStatistics:
     def df(self):
         return self._df
 
-    def _count_nulls(self, col: Union[List[str], str, None] = None):#, perc=False):
+    def count_nulls(self, col: Union[List[str], str, None] = None):#, perc=False):
         """
         :param col: column name if provided only counts null in that column
         :return:
@@ -40,7 +40,7 @@ class DataFrameStatistics:
         :return:
             list of given column(s) or all columns with null values in DataFrame if None."
         """
-        return list(self.df.columns[self._count_nulls() > 0]) if col is None \
+        return list(self.df.columns[self.count_nulls() > 0]) if col is None \
             else col if isinstance(col, list) \
             else [col]
 
@@ -59,21 +59,23 @@ class DataFrameStatistics:
 
     def calc_statistics(self):
         dupes_dict = self.get_duplicate_columns()
-        cols_with_dupes = len(dupes_dict.keys())
         null_cols = self.get_null_cols()
-        return {"dupes": dupes_dict, "cols_with_dupes": cols_with_dupes, "null_cols": null_cols}
+        return {"dupes": dupes_dict,  "null_cols": null_cols}
 
     def print_report(self):
         """
-        Prints a report containing all the warnings detected during the data quality analysis.
+        returns a string report containing all the warnings detected during the data quality analysis.
         """
         stats_dict = self.calc_statistics()
-        dupes_dict, cols_with_dupes, null_cols = stats_dict['dupes'], stats_dict['cols_with_dupes'], stats_dict['null_cols']
+        dupes_dict, null_cols = stats_dict['dupes'],  stats_dict['null_cols']
+
         is_periodindex_df = self.check_periodtime_index(self.df.index)
 
         print(f"\n\nDATA QUALITY REPORT\n")
-        if cols_with_dupes > 0:
-            print(f"Found {cols_with_dupes} columns with exactly the same feature values as other columns.")
+
+        num_cols_with_dupes = len(dupes_dict.keys())
+        if num_cols_with_dupes > 0:
+            print(f"Found {num_cols_with_dupes} columns with exactly the same feature values as other columns.")
             for col, dupe in dupes_dict.items():
                 print(f"Columns {dupe} is/are duplicate(s) of Column '{col}'")
         else:
