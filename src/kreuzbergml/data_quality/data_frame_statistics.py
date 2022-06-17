@@ -7,11 +7,6 @@ from pandas import DataFrame, DatetimeIndex, Index, PeriodIndex, date_range, per
 logger = getLogger(__name__)
 
 
-class DataFrameType(Enum):
-    TABULAR = auto()
-    TIMESERIES = auto()
-
-
 class DataFrameStatistics:
 
     def __init__(self,
@@ -19,23 +14,28 @@ class DataFrameStatistics:
                  ):
         self._df = df
 
+        if isinstance(self._df.index, DatetimeIndex):
+            self._df_type = "time"
+        elif isinstance(self._df.index, PeriodIndex):
+            self._df_type = "period"
+        else:
+            self._df_type = "tabular"
+
     @property
     def df(self):
         return self._df
 
-    def count_nulls(self, col: Union[List[str], str, None] = None):#, perc=False):
+    def count_nulls(self, col: Union[List[str], str, None] = None):
         """
         :param col: column name if provided only counts null in that column
         :return:
             count of null values,
-            perc of null values
         """
         count = self.df.isnull().sum() if col is None else self.df[col].isnull().sum()
         return count
 
     def get_null_cols(self, col: Optional[str] = None) -> List[str]:
         """
-
         :param col: if given, checks if  col(s) has nulls
         :return:
             list of given column(s) or all columns with null values in DataFrame if None."
@@ -58,56 +58,55 @@ class DataFrameStatistics:
         return dupes
 
     def calc_statistics(self):
-        dupes_dict = self.get_duplicate_columns()
-        null_cols = self.get_null_cols()
-        return {"dupes": dupes_dict,  "null_cols": null_cols}
+
+        if self._df_type in ["time", "period"]:
+            num_missing_dates = len(self.get_missing_indices())
+            duplicate_rows = self.df[self.df.duplicated()]
+
+            return {"missing_dates": num_missing_dates, "dup_rows": duplicate_rows}
+
+        else:
+            duplicate_cols_dict = self.get_duplicate_columns()
+            null_cols = self.get_null_cols()
+
+            return {"dup_cols": duplicate_cols_dict,  "null_cols": null_cols}
 
     def print_report(self):
         """
         returns a string report containing all the warnings detected during the data quality analysis.
         """
         stats_dict = self.calc_statistics()
-        dupes_dict, null_cols = stats_dict['dupes'],  stats_dict['null_cols']
-
-        is_periodindex_df = self.check_periodtime_index(self.df.index)
 
         print(f"\n\nDATA QUALITY REPORT\n")
 
-        num_cols_with_dupes = len(dupes_dict.keys())
-        if num_cols_with_dupes > 0:
-            print(f"Found {num_cols_with_dupes} columns with exactly the same feature values as other columns.")
-            for col, dupe in dupes_dict.items():
-                print(f"Columns {dupe} is/are duplicate(s) of Column '{col}'")
+        if self._df_type in ["time", "period"]:
+            num_missing_dates = stats_dict['missing_dates']
+            duplicate_rows = stats_dict["dup_rows"]
+            print(f"Found {num_missing_dates} missing dates in the timeseries index")
+            print(f"Found {len(duplicate_rows)} duplicate rows : \n {duplicate_rows}")
         else:
-            print("No duplicate columns were found.")
+            duplicate_cols_dict = stats_dict['dup_cols']
+            null_cols = stats_dict['null_cols']
+            num_cols_with_dupes = len(duplicate_cols_dict.keys())
+            if num_cols_with_dupes > 0:
+                print(f"Found {num_cols_with_dupes} columns with exactly the same feature values as other columns.")
+                for col, dupe in duplicate_cols_dict.items():
+                    print(f"Columns {dupe} is/are duplicate(s) of Column '{col}'")
+            else:
+                print("No duplicate columns were found.")
 
-        if len(null_cols) > 0:
-            print(f"The following columns have NaN values:")
-            for col in null_cols:
-                count = self._count_nulls(col)
-                percentage_nulls = count / len(self.df)
+            if len(null_cols) > 0:
+                print(f"The following columns have NaN values:")
+                for col in null_cols:
+                    count = self._count_nulls(col)
+                    percentage_nulls = count / len(self.df)
 
-                print(f"Column '{col}' has {count} NaN values which comprise {percentage_nulls:.2f} of all rows")
-        else:
-            print(f"No NaN values were found")
+                    print(f"Column '{col}' has {count} NaN values which comprise {percentage_nulls:.2f} of all rows")
+            else:
+                print(f"No NaN values were found")
 
-        if is_periodindex_df != None:
-            num_missing_dates = len(self.get_missing_indices(is_periodindex_df))
-            print(f"Found {num_missing_dates} missing dates in the timesseries index")
-
-    def check_periodtime_index(self, index: Index) -> bool:
-        """Tries to infer from passed index column if the dataframe is a timeseries or not."""
-        if isinstance(index, (DatetimeIndex)):
-            return False
-        elif isinstance(index, (PeriodIndex)):
-            return True
-        return None
-
-    def get_missing_indices(self, is_periodindex: bool = False):
+    def get_missing_indices(self):
         """
-        :param is_periodindex:
-            True - check missing values for PeriodIndex
-            False - check missing values for DatetimeIndex
         :return:
             Returns Index with elements that are not in the dataframe index
         """
@@ -115,14 +114,9 @@ class DataFrameStatistics:
         max_date = self.df.index.max()
         freq = self.df.index.freq
 
-        if is_periodindex:
+        if self._df_type == "period":
             missing_dates = period_range(start=min_date, end=max_date, freq=freq).difference(self.df.index)
         else:
             missing_dates = date_range(start=min_date, end=max_date, freq=freq).difference(self.df.index)
 
         return missing_dates
-
-    # def infer_df_type(self, df: DataFrame) -> DataFrameType:
-    #     if self.check_time_index(df.index):
-    #         return DataFrameType.TIMESERIES
-    #     return DataFrameType.TABULAR

@@ -11,7 +11,7 @@ def test_calc_statistics_dupes():
     dq = DataFrameStatistics(df)
     stats_dict = dq.calc_statistics()
 
-    dupes_dict, null_cols = stats_dict['dupes'], stats_dict['null_cols']
+    dupes_dict, null_cols = stats_dict['dup_cols'], stats_dict['null_cols']
 
     assert(len(null_cols) == 0)
     num_cols_with_dupes = len(dupes_dict.keys())
@@ -29,7 +29,7 @@ def test_calc_statistics_nulls():
     dq = DataFrameStatistics(df)
     stats_dict = dq.calc_statistics()
 
-    dupes_dict, null_cols = stats_dict['dupes'], stats_dict['null_cols']
+    dupes_dict, null_cols = stats_dict['dup_cols'], stats_dict['null_cols']
 
     num_cols_with_dupes = len(dupes_dict.keys())
     assert(num_cols_with_dupes == 0)
@@ -44,8 +44,21 @@ def test_calc_statistics_nulls():
     assert (null_cols[1] == 'YearBuilt')
     count_1 = dq.count_nulls(null_cols[1])
     percentage_nulls_1 = count_1 / len(dq.df)
-    assert(round(percentage_nulls_1, 2)== 0.37)
+    assert(round(percentage_nulls_1, 2) == 0.37)
     assert(count_1 == 373)
+
+
+def test_calc_statistics_missing_dates():
+    timeseries_file_path = THIS_DIR / 'sample_data' / 'Electric_Production_timeseries.csv'
+    df = pd.read_csv(timeseries_file_path, parse_dates=["DATE"], index_col=0)
+    dq = DataFrameStatistics(df)
+    stats_dict = dq.calc_statistics()
+    num_missing_dates, duplicate_rows = stats_dict['missing_dates'], stats_dict['dup_rows']
+
+    assert(num_missing_dates == 11658)
+    assert(len(duplicate_rows) == 1)
+
+
 
 
 
