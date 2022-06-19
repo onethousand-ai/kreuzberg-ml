@@ -98,7 +98,7 @@ class DataFrameStatistics:
             if len(null_cols) > 0:
                 print(f"The following columns have NaN values:")
                 for col in null_cols:
-                    count = self._count_nulls(col)
+                    count = self.count_nulls(col)
                     percentage_nulls = count / len(self.df)
 
                     print(f"Column '{col}' has {count} NaN values which comprise {percentage_nulls:.2f} of all rows")
