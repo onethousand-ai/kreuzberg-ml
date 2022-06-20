@@ -2,7 +2,14 @@ import logging
 from typing import Dict, Optional
 
 import gin
-from azureml.core import ComputeTarget, Environment, Model, Webservice, Workspace
+from azureml.core import (
+    ComputeTarget,
+    Environment,
+    Model,
+    RunConfiguration,
+    Webservice,
+    Workspace,
+)
 from azureml.core.authentication import (
     InteractiveLoginAuthentication,
     ServicePrincipalAuthentication,
@@ -11,8 +18,6 @@ from azureml.core.compute import AmlCompute
 from azureml.core.model import InferenceConfig
 from azureml.core.webservice import AciWebservice
 from azureml.exceptions import ComputeTargetException
-from azureml.core import Model, RunConfiguration
-from azureml.core.webservice import AciWebservice
 from azureml.pipeline.core import Pipeline, PipelineEndpoint
 from azureml.pipeline.steps import PythonScriptStep
 
@@ -231,57 +236,58 @@ class AzureApp:
         service.wait_for_deployment(show_output=True)
         return service
 
-    def create_pipeline_endpoint(self,
-                model_name: str,
-                pipeline_endpoint_name: str,
-                                 conda_file: str = "./conda.yml",
-                environment_variables: Optional[Dict[str, str]] = None,
-        ) -> None:
-            ws = self.get_workspace()
-            env = Environment.from_conda_specification(
-                name=f"{self.realtime_service_name}-env", file_path=conda_file
-            )
-            env.environment_variables = environment_variables
-            compute_target = self.create_compute_instance()
-            runconfig = RunConfiguration()
-            runconfig.environment = env
+    def create_pipeline_endpoint(
+        self,
+        model_name: str,
+        pipeline_endpoint_name: str,
+        conda_file: str = "./conda.yml",
+        environment_variables: Optional[Dict[str, str]] = None,
+    ) -> None:
+        ws = self.get_workspace()
+        env = Environment.from_conda_specification(
+            name=f"{self.realtime_service_name}-env", file_path=conda_file
+        )
+        env.environment_variables = environment_variables
+        compute_target = self.create_compute_instance()
+        runconfig = RunConfiguration()
+        runconfig.environment = env
 
-            batch_execution_step = PythonScriptStep(
-                source_directory="restocking",
-                script_name="deployment/azure_batch_forecasting.py",
-                arguments=["--model_name", model_name],
-                runconfig=runconfig,
-                compute_target=compute_target,
-                allow_reuse=False,
+        batch_execution_step = PythonScriptStep(
+            source_directory="restocking",
+            script_name="deployment/azure_batch_forecasting.py",
+            arguments=["--model_name", model_name],
+            runconfig=runconfig,
+            compute_target=compute_target,
+            allow_reuse=False,
+        )
+        published_pipeline = Pipeline(
+            workspace=ws,
+            steps=[batch_execution_step],
+            default_source_directory="restocking",
+            description="Batch pipeline",
+        ).publish(
+            name="batch-pipeline",
+            description="Published batch pipeline.",
+        )
+        existing_pipelines_list = PipelineEndpoint.list(ws, active_only=False)
+        existing_pipelines_names_set = {p.name for p in existing_pipelines_list}
+        if pipeline_endpoint_name in existing_pipelines_names_set:
+            pipeline_endpoint = PipelineEndpoint.get(
+                workspace=ws, name=pipeline_endpoint_name
             )
-            published_pipeline = Pipeline(
+            pipeline_endpoint.add_default(published_pipeline)
+            if pipeline_endpoint.status == "Disabled":
+                pipeline_endpoint.enable()
+            logging.info(
+                f"Existing pipeline has been updated. URL={pipeline_endpoint.endpoint}"
+            )
+        else:
+            pipeline_endpoint = PipelineEndpoint.publish(
                 workspace=ws,
-                steps=[batch_execution_step],
-                default_source_directory="restocking",
-                description="Batch pipeline",
-            ).publish(
-                name="batch-pipeline",
-                description="Published batch pipeline.",
+                name=pipeline_endpoint_name,
+                pipeline=published_pipeline,
+                description="Batch Pipeline Endpoint",
             )
-            existing_pipelines_list = PipelineEndpoint.list(ws, active_only=False)
-            existing_pipelines_names_set = {p.name for p in existing_pipelines_list}
-            if pipeline_endpoint_name in existing_pipelines_names_set:
-                pipeline_endpoint = PipelineEndpoint.get(
-                    workspace=ws, name=pipeline_endpoint_name
-                )
-                pipeline_endpoint.add_default(published_pipeline)
-                if pipeline_endpoint.status == "Disabled":
-                    pipeline_endpoint.enable()
-                logging.info(
-                    f"Existing pipeline has been updated. URL={pipeline_endpoint.endpoint}"
-                )
-            else:
-                pipeline_endpoint = PipelineEndpoint.publish(
-                    workspace=ws,
-                    name=pipeline_endpoint_name,
-                    pipeline=published_pipeline,
-                    description="Batch Pipeline Endpoint",
-                )
-                logger.info(
-                    f"New pipeline has been published. URL={pipeline_endpoint.endpoint}"
-                )
+            logger.info(
+                f"New pipeline has been published. URL={pipeline_endpoint.endpoint}"
+            )
