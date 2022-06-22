@@ -5,7 +5,7 @@ from pathlib import Path
 THIS_DIR = Path(__file__).parent
 
 
-def test_calc_statistics_dupes():
+"""def test_calc_statistics_dupes():
     census_1000_file_path = THIS_DIR / 'sample_data' / 'census_1000.csv'
     df = pd.read_csv(census_1000_file_path)
     dq = DataFrameStatistics(df)
@@ -57,6 +57,7 @@ def test_calc_statistics_missing_dates():
 
     assert(num_missing_dates == 11658)
     assert(len(duplicate_rows) == 1)
+"""
 
 
 
