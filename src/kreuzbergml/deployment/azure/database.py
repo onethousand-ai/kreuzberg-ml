@@ -1,10 +1,11 @@
 import logging
+
 import gin
 from azureml.core import Datastore
 from azureml.data.azure_postgre_sql_datastore import AzurePostgreSqlDatastore
 from azureml.exceptions import UserErrorException
-from .app import AzureApp
 
+from .app import AzureApp
 
 logger = logging.getLogger(__name__)
 
@@ -12,13 +13,13 @@ logger = logging.getLogger(__name__)
 @gin.configurable
 class AzureDatabase:
     def __init__(
-            self,
-            azure_config: AzureApp,
-            datastore_name: str,
-            server_name: str,
-            database_name: str,
-            user_id: str,
-            user_password: str,
+        self,
+        azure_config: AzureApp,
+        datastore_name: str,
+        server_name: str,
+        database_name: str,
+        user_id: str,
+        user_password: str,
     ):
         self.__azure_config = azure_config
         self.__datastore_name = datastore_name
@@ -65,5 +66,7 @@ class AzureDatabase:
                 user_id=self.user_id,
                 user_password=self.user_password,
             )
-            logger.info(f"PostgreSQL database '{self.datastore_name}' has been registered.")
+            logger.info(
+                f"PostgreSQL database '{self.datastore_name}' has been registered."
+            )
         return psql_datastore

@@ -46,18 +46,20 @@ class ENRegularizedLRParamsFactory(AbstractGridSearchParamsFactory):
         }
         return param_dict
 
+
 class RFCParamsFactory(AbstractGridSearchParamsFactory):
     def get_model_class(self):
         return sklearn.ensemble.RandomForestClassifier
 
     def get_param_dict(self) -> Dict[str, Iterable]:
         param_dict = {
-            "max_depth": list(range(4,10)),
+            "max_depth": list(range(4, 10)),
             "n_estimators": [2**i for i in range(3, 7)],
             "min_samples_split": [2, 3, 5, 10],
             "min_samples_leaf": [1, 2, 4],
         }
         return param_dict
+
 
 class SVCParamsFactory(AbstractGridSearchParamsFactory):
     def get_model_class(self):
@@ -71,6 +73,7 @@ class SVCParamsFactory(AbstractGridSearchParamsFactory):
         }
         return param_dict
 
+
 class LinSVCParamsFactory(AbstractGridSearchParamsFactory):
     def get_model_class(self):
         return sklearn.svm.LinearSVC
@@ -79,9 +82,10 @@ class LinSVCParamsFactory(AbstractGridSearchParamsFactory):
         param_dict = {
             "penalty": ["l1", "l2"],
             "dual": [True, False],
-            "C": np.logspace(-5,5, num=11),
+            "C": np.logspace(-5, 5, num=11),
         }
         return param_dict
+
 
 class MLPCParamsFactory(AbstractGridSearchParamsFactory):
     def get_model_class(self):
@@ -89,12 +93,20 @@ class MLPCParamsFactory(AbstractGridSearchParamsFactory):
 
     def get_param_dict(self) -> Dict[str, Iterable]:
         param_dict = {
-            "hidden_layer_sizes": [(10,), (20,), (100,), (10, 30, 10), (50,50,50), (50,100,50)],
+            "hidden_layer_sizes": [
+                (10,),
+                (20,),
+                (100,),
+                (10, 30, 10),
+                (50, 50, 50),
+                (50, 100, 50),
+            ],
             "activation": ["tanh", "relu", "logistic"],
-            "alpha": np.logspace(-4,-2, num=7),
+            "alpha": np.logspace(-4, -2, num=7),
             "learning_rate": ["constant", "adaptive"],
         }
         return param_dict
+
 
 class DTCParamsFactory(AbstractGridSearchParamsFactory):
     def get_model_class(self):
@@ -109,6 +121,7 @@ class DTCParamsFactory(AbstractGridSearchParamsFactory):
         }
         return param_dict
 
+
 class KNCParamsFactory(AbstractGridSearchParamsFactory):
     def get_model_class(self):
         return sklearn.neighbors.KNeighborsClassifier
@@ -116,7 +129,7 @@ class KNCParamsFactory(AbstractGridSearchParamsFactory):
     def get_param_dict(self) -> Dict[str, Iterable]:
         param_dict = {
             "n_neighbors": list(range(1, 30, 3)),
-            "p": list(range(1,5)),
+            "p": list(range(1, 5)),
             "leaf_size": list(range(1, 50, 5)),
             "weights": ["uniform", "distance"],
         }
