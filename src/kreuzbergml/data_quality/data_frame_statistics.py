@@ -40,9 +40,13 @@ class DataFrameStatistics:
         :return:
             list of given column(s) or all columns with null values in DataFrame if None."
         """
-        return list(self.df.columns[self.count_nulls() > 0]) if col is None \
-            else col if isinstance(col, list) \
-            else [col]
+        if col is None:
+            null_cols = list(self.df.columns[self.count_nulls() > 0])
+        elif isinstance(col, list):
+            null_cols = col
+        else:
+            null_cols = [col]
+        return null_cols
 
     def get_duplicate_columns(self):
         """
@@ -57,36 +61,58 @@ class DataFrameStatistics:
                     dupes.setdefault(col, []).append(tgt_col)  # Store if they match
         return dupes
 
-    def calc_statistics(self):
+    def calc_statistics_timeseries(self):
 
-        if self._df_type in ["time", "period"]:
-            num_missing_dates = len(self.get_missing_indices())
-            duplicate_rows = self.df[self.df.duplicated()]
+        num_missing_dates = len(self.get_missing_indices())
+        duplicate_rows = self.df[self.df.duplicated()]
 
-            return {"missing_dates": num_missing_dates, "dup_rows": duplicate_rows}
+        return {"missing_dates": num_missing_dates, "dup_rows": duplicate_rows}
 
-        else:
-            duplicate_cols_dict = self.get_duplicate_columns()
-            null_cols = self.get_null_cols()
+    def calc_statistics_tabular(self):
 
-            return {"dup_cols": duplicate_cols_dict,  "null_cols": null_cols}
+        duplicate_cols_dict = self.get_duplicate_columns()
+        null_cols = self.get_null_cols()
+        duplicate_rows = self.df[self.df.duplicated()]
+
+        return {"dup_cols": duplicate_cols_dict, "null_cols": null_cols, "dup_rows": duplicate_rows}
 
     def print_report(self):
         """
-        returns a string report containing all the warnings detected during the data quality analysis.
+        Prints a string report containing all the problems detected during the analysis.
         """
-        stats_dict = self.calc_statistics()
 
         print(f"\n\nDATA QUALITY REPORT\n")
 
         if self._df_type in ["time", "period"]:
+            stats_dict = self.calc_statistics_timeseries()
+
+            ### MISSING DATES
             num_missing_dates = stats_dict['missing_dates']
+            if num_missing_dates:
+                print(f"Found {num_missing_dates} missing dates in the timeseries index")
+            else:
+                print("No missing dates were found.")
+
+            ### DUPLICATE ROWS
             duplicate_rows = stats_dict["dup_rows"]
-            print(f"Found {num_missing_dates} missing dates in the timeseries index")
-            print(f"Found {len(duplicate_rows)} duplicate rows : \n {duplicate_rows}")
+            if len(duplicate_rows):
+                print(f"Found {len(duplicate_rows)} duplicate rows : \n {duplicate_rows}")
+            else:
+                print("No duplicate rows were found.")
         else:
+            stats_dict = self.calc_statistics_tabular()
+
             duplicate_cols_dict = stats_dict['dup_cols']
             null_cols = stats_dict['null_cols']
+
+            ### DUPLICATE ROWS
+            duplicate_rows = stats_dict["dup_rows"]
+            if len(duplicate_rows):
+                print(f"Found {len(duplicate_rows)} duplicate rows : \n {duplicate_rows}")
+            else:
+                print("No duplicate rows were found.")
+
+            ### DUPLICATE COLS
             num_cols_with_dupes = len(duplicate_cols_dict.keys())
             if num_cols_with_dupes > 0:
                 print(f"Found {num_cols_with_dupes} columns with exactly the same feature values as other columns.")
@@ -95,6 +121,7 @@ class DataFrameStatistics:
             else:
                 print("No duplicate columns were found.")
 
+            ### NULL COLS
             if len(null_cols) > 0:
                 print(f"The following columns have NaN values:")
                 for col in null_cols:
