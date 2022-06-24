@@ -57,19 +57,36 @@ class DataFrameStatistics:
                     dupes.setdefault(col, []).append(tgt_col)  # Store if they match
         return dupes
 
+    def get_duplicate_rows(self):
+        """
+        :return:
+            Returns a mapping dictionary of rows with fully duplicated feature values
+        """
+        dupes = {}
+        for idx in range(len(self.df)):  # Iterate through all the rows of dataframe
+            ref = self.df.iloc[idx]  # Take row as reference.
+            for tgt_row_idx in range(idx+1, len(self.df)):  # Iterate through all other rows
+                tgt_row = self.df.iloc[tgt_row_idx]
+                if ref.equals(tgt_row):  # Take target values
+                    try:
+                        dupes[ref.name].append(tgt_row.name)  # Store if they match
+                    except:
+                        dupes[ref.name] = [tgt_row.name]
+        return dupes
+
     def calc_statistics(self):
+
+        duplicate_cols_dict = self.get_duplicate_columns()
+        duplicate_rows_dict = self.get_duplicate_rows()
+        null_cols = self.get_null_cols()
 
         if self._df_type in ["time", "period"]:
             num_missing_dates = len(self.get_missing_indices())
-            duplicate_rows = self.df[self.df.duplicated()]
 
-            return {"missing_dates": num_missing_dates, "dup_rows": duplicate_rows}
+            return {"missing_dates": num_missing_dates, "dup_cols": duplicate_cols_dict, "dup_rows": duplicate_rows_dict,  "null_cols": null_cols}
 
         else:
-            duplicate_cols_dict = self.get_duplicate_columns()
-            null_cols = self.get_null_cols()
-
-            return {"dup_cols": duplicate_cols_dict,  "null_cols": null_cols}
+            return {"dup_cols": duplicate_cols_dict, "dup_rows": duplicate_rows_dict, "null_cols": null_cols}
 
     def print_report(self):
         """
@@ -81,29 +98,37 @@ class DataFrameStatistics:
 
         if self._df_type in ["time", "period"]:
             num_missing_dates = stats_dict['missing_dates']
-            duplicate_rows = stats_dict["dup_rows"]
             print(f"Found {num_missing_dates} missing dates in the timeseries index")
-            print(f"Found {len(duplicate_rows)} duplicate rows : \n {duplicate_rows}")
+        
+        duplicate_cols_dict = stats_dict['dup_cols']
+        duplicate_rows_dict = stats_dict['dup_rows']
+        null_cols = stats_dict['null_cols']
+        num_cols_with_dupes = len(duplicate_cols_dict.keys())
+        num_rows_with_dupes = len(duplicate_rows_dict.keys())
+
+        if num_cols_with_dupes > 0:
+            print(f"Found {num_cols_with_dupes} columns with exactly the same feature values as other columns.")
+            for col, dupe in duplicate_cols_dict.items():
+                print(f"Columns {dupe} is/are duplicate(s) of Column '{col}'")
         else:
-            duplicate_cols_dict = stats_dict['dup_cols']
-            null_cols = stats_dict['null_cols']
-            num_cols_with_dupes = len(duplicate_cols_dict.keys())
-            if num_cols_with_dupes > 0:
-                print(f"Found {num_cols_with_dupes} columns with exactly the same feature values as other columns.")
-                for col, dupe in duplicate_cols_dict.items():
-                    print(f"Columns {dupe} is/are duplicate(s) of Column '{col}'")
-            else:
-                print("No duplicate columns were found.")
+            print("No duplicated columns were found.")
 
-            if len(null_cols) > 0:
-                print(f"The following columns have NaN values:")
-                for col in null_cols:
-                    count = self.count_nulls(col)
-                    percentage_nulls = count / len(self.df)
+        if num_rows_with_dupes > 0:
+            print(f"Found {num_rows_with_dupes} rows with exactly the same feature values as other rows.")
+            for row, dupe in duplicate_rows_dict.items():
+                print(f"Rows {dupe} is/are duplicate(s) of row {row}")
+        else:
+            print("No duplicated rows were found.")
 
-                    print(f"Column '{col}' has {count} NaN values which comprise {percentage_nulls:.2f} of all rows")
-            else:
-                print(f"No NaN values were found")
+        if len(null_cols) > 0:
+            print(f"The following columns have NaN values:")
+            for col in null_cols:
+                count = self.count_nulls(col)
+                percentage_nulls = count / len(self.df)
+
+                print(f"Column '{col}' has {count} NaN values which comprise {percentage_nulls:.2f} of all rows")
+        else:
+            print(f"No NaN values were found")
 
     def get_missing_indices(self):
         """
