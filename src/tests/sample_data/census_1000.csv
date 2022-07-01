@@ -1,5 +1,7 @@
 age,workclass,fnlwgt,education,education-num,marital-status,occupation,relationship,race,sex,capital-gain,capital-loss,hours-per-week,native-country,income,workclass2
 57,Private,132704,Masters,14,Separated,Prof-specialty,Not-in-family,White,Male,10520,0,32,United-States,>50K,Private
+57,Private,132704,Masters,14,Separated,Prof-specialty,Not-in-family,White,Male,10520,0,32,United-States,>50K,Private
+25,Private,321205,Bachelors,13,Never-married,Exec-managerial,Not-in-family,White,Male,4101,0,35,United-States,<=50K,Private
 25,Private,321205,Bachelors,13,Never-married,Exec-managerial,Not-in-family,White,Male,4101,0,35,United-States,<=50K,Private
 25,Private,38090,Bachelors,13,Never-married,Sales,Not-in-family,White,Male,0,0,44,United-States,<=50K,Private
 54,Private,29909,11th,7,Married-civ-spouse,Other-service,Wife,White,Female,0,0,43,United-States,<=50K,Private
