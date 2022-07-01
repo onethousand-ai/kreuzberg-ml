@@ -2,6 +2,7 @@ from logging import getLogger
 from typing import List, Optional, Union
 
 import numpy as np
+import seaborn as sns
 from pandas import (DataFrame, DatetimeIndex, Index, PeriodIndex, date_range,
                     period_range)
 
@@ -95,15 +96,16 @@ class DataFrameStatistics:
 
         return missing_dates
 
-    def get_correlated_columns(self):
+    def get_correlated_columns(self, correlation_value: float = 0.95):
         """
+        :param correlation_value: the function returns all columns with a higher correlation than this value
         :return:
             Returns pairs of highly correlated columns (only for numerical columns)
         """
         cor_matrix = self.df.corr().abs() # correlation matrix with positiv values
         upper_tri = cor_matrix.where(np.triu(np.ones(cor_matrix.shape),k=1).astype(bool)) # only use the upper half because of symmetry
-        high_corr = np.dstack(np.where(upper_tri>0.95))[0] # filter all indices of the columns that are higher than 0.95 correlated
-        col_names = np.array(np.take(upper_tri.columns, high_corr)) # use multi-dimesional indexing to get the names of the correlated columns
+        high_corr = np.dstack(np.where(upper_tri>correlation_value))[0] # filter all indices of the columns that are higher than 'correlation_value' correlated
+        col_names = np.array(np.take(upper_tri.columns, high_corr)) # use multi-dimensional indexing to get the names of the correlated columns
         return col_names
 
     def calc_statistics(self):
@@ -112,14 +114,12 @@ class DataFrameStatistics:
         duplicate_rows_dict = self.get_duplicate_rows()
         null_cols = self.get_null_cols()
         corr_cols = self.get_correlated_columns()
+        num_missing_dates = None
 
         if self._df_type in ["time", "period"]:
             num_missing_dates = len(self.get_missing_indices())
 
-            return {"missing_dates": num_missing_dates, "dup_cols": duplicate_cols_dict, "dup_rows": duplicate_rows_dict,  "null_cols": null_cols, "corr_cols": corr_cols}
-
-        else:
-            return {"dup_cols": duplicate_cols_dict, "dup_rows": duplicate_rows_dict, "null_cols": null_cols, "corr_cols": corr_cols}
+        return {"missing_dates": num_missing_dates, "dup_cols": duplicate_cols_dict, "dup_rows": duplicate_rows_dict,  "null_cols": null_cols, "corr_cols": corr_cols}
 
     def print_report(self):
         """
@@ -165,9 +165,14 @@ class DataFrameStatistics:
             print(f"No NaN values were found")
 
         if len(corr_cols) > 0:
-            print(f"Found {len(corr_cols)} columns that are highly correlated.")
-            for col_pair in corr_cols:
-                print(f"Column '{col_pair[0]}' is highly correlated with '{col_pair[1]}'")
+            print(f"Found {len(corr_cols)} columns that are highly correlated (>95%) from another column.")
+
+            if len(corr_cols) < 0:
+                for col_pair in corr_cols:
+                    print(f"Column '{col_pair[0]}' is highly correlated with '{col_pair[1]}'")
+            else:
+                print("Too many columns too show individualy --> Heatmap:")
+                sns.heatmap(self.df.corr().abs(), annot=True, cmap="BuPu")
         else:
             print(f"No highly correlated columns found.")
 
