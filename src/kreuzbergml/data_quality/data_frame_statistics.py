@@ -174,11 +174,11 @@ class DataFrameStatistics:
         corr_cols = stats_dict['corr_cols']
         if len(corr_cols) > 0:
             print(f"Found {len(corr_cols)} columns that are highly correlated (>95%) from another column.")
-            if len(corr_cols) < 0:
+            if len(corr_cols) < 10:
                 for col_pair in corr_cols:
                     print(f"Column '{col_pair[0]}' is highly correlated with '{col_pair[1]}'")
             else:
-                print("Too many columns too show individualy --> Heatmap:")
+                print("Too many columns (>10) too show individualy --> Heatmap:")
                 sns.heatmap(self.df.corr().abs(), annot=True, cmap="BuPu")
         else:
             print(f"No highly correlated columns found.")
