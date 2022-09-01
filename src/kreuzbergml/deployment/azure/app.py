@@ -41,9 +41,15 @@ class AzureApp:
         code_path: str,
         config_path: str,
         compute_name: str,
-        # realtime_service_name: str,
-        # batch_service_name: str,
-        # app_name: str = "app",
+        experiment_name: str,
+        batch_service_name: str,
+        db_host: Optional[str],
+        db_port: Optional[str],
+        db_user: Optional[str],
+        db_password: Optional[str],
+        db_name: Optional[str],
+        blob_string: Optional[str],
+        blob_container: Optional[str],
     ):
         self.__tenant_id = tenant_id
         self.__subscription_id = subscription_id
@@ -55,6 +61,15 @@ class AzureApp:
         self.__code_path = code_path
         self.__config_path = config_path
         self.__compute_name = compute_name
+        self.__experiment_name = experiment_name
+        self.__batch_service_name = batch_service_name
+        self.__db_host = db_host
+        self.__db_port = db_port
+        self.__db_user = db_user
+        self.__db_password = db_password
+        self.__db_name = db_name
+        self.__blob_string = blob_string
+        self.__blob_container = blob_container
         # self.__realtime_service_name = realtime_service_name
         # self.__batch_service_name = batch_service_name
 
@@ -103,6 +118,34 @@ class AzureApp:
     @property
     def compute_name(self) -> str:
         return self.__compute_name
+
+    @property
+    def db_host(self) -> str:
+        return self.__db_host
+
+    @property
+    def db_port(self) -> str:
+        return self.__db_port
+
+    @property
+    def db_user(self) -> str:
+        return self.__db_user
+
+    @property
+    def db_password(self) -> str:
+        return self.__db_password
+
+    @property
+    def db_name(self) -> str:
+        return self.__db_name
+
+    @property
+    def blob_string(self) -> str:
+        return self.__blob_string
+
+    @property
+    def blob_container(self) -> str:
+        return self.__blob_container
 
     # @property
     # def realtime_service_name(self) -> str:
@@ -193,6 +236,51 @@ class AzureApp:
         )
         return model
 
+    def get_env(
+            self,
+            endpoint_azure_name: str,
+            conda_file: str,
+            principal_access: bool = False,
+            db_access: bool = False,
+            blob_access: bool = False,
+            custom_environment_variables: Optional[Dict[str, str]] = None,
+    ) -> Environment:
+        env = Environment.from_conda_specification(
+            name=f"{endpoint_azure_name}-env", file_path=conda_file
+        )
+        env.environment_variables = {
+            "tenant_id": self.__tenant_id,
+            "subscription_id": self.__subscription_id,
+            "resource_group": self.__resource_group,
+            "workspace_name": self.__workspace_name,
+            "model_name": self.__model_name,
+            "service_principal_id": self.__service_principle_id,
+            "service_principal_password": self.__service_principle_password,
+            "experiment_name": self.__experiment_name,
+            "batch_service_name": self.__batch_service_name,
+        }
+        if principal_access:
+            env.environment_variables.update({
+                "service_principal_id": self.__service_principal_id,
+                "service_principal_password": self.__service_principal_password,
+            })
+        if db_access:
+            env.environment_variables.update({
+                "db_host": self.__db_host,
+                "db_port": self.__db_port,
+                "db_user": self.__db_user,
+                "db_password": self.__db_password,
+                "db_name": self.__db_name,
+            })
+        if blob_access:
+            env.environment_variables.update({
+                "blob_string": self.__blob_string,
+                "blob_container": self.__blob_container,
+            })
+        if custom_environment_variables:
+            env.environment_variables.update(custom_environment_variables)
+        return env
+
     def create_real_time_endpoint(
         self,
         conda_file: str = "conda.yml",
@@ -201,13 +289,26 @@ class AzureApp:
         endpoint_dns_name: Optional[str] = None,
         aci_cpu_cores: int = 1,
         aci_memory_gb: int = 0.5,
+        ssl_cert_pem_file: Optional[str] = None,
+        ssl_key_pem_file: Optional[str] = None,
+        ssl_cname: Optional[str] = None,
+        principal_access: bool = False,
+        db_access: bool = False,
+        blob_access: bool = False,
         environment_variables: Optional[Dict[str, str]] = None,
     ) -> Webservice:
         ws = self.get_workspace()
-        env = Environment.from_conda_specification(
-            name=f"{endpoint_azure_name}-env", file_path=conda_file
+        ssl_enabled = (
+            True if ssl_cert_pem_file and ssl_key_pem_file and ssl_cname else False
         )
-        env.environment_variables = environment_variables
+        env = self.get_env(
+            endpoint_azure_name,
+            conda_file,
+            principal_access,
+            db_access,
+            blob_access,
+            environment_variables,
+        )
         inference_config = InferenceConfig(
             environment=env,
             entry_script=entry_script_file,
@@ -217,6 +318,10 @@ class AzureApp:
             cpu_cores=aci_cpu_cores,
             memory_gb=aci_memory_gb,
             dns_name_label=endpoint_dns_name,
+            ssl_enabled=ssl_enabled,
+            ssl_cert_pem_file=ssl_cert_pem_file,
+            ssl_key_pem_file=ssl_key_pem_file,
+            ssl_cname=ssl_cname,
         )
         service = Model.deploy(
             workspace=ws,
@@ -243,10 +348,13 @@ class AzureApp:
         environment_variables: Optional[Dict[str, str]] = None,
     ) -> PipelineEndpoint:
         ws = self.get_workspace()
-        env = Environment.from_conda_specification(
-            name=f"{service_name}-env", file_path=conda_file
+        env = self.get_env(
+            service_name,
+            conda_file,
+            db_access=True,
+            blob_access=True,
+            custom_environment_variables=environment_variables
         )
-        env.environment_variables = environment_variables
         compute_target = self.get_or_create_compute_target(
             vm_size=vm_size,
             vm_priority=vm_priority,
