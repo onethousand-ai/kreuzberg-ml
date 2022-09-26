@@ -292,6 +292,8 @@ class AzureApp:
         ssl_cert_pem_file: Optional[str] = None,
         ssl_key_pem_file: Optional[str] = None,
         ssl_cname: Optional[str] = None,
+        location: str = "northeurope",
+        tags: Optional[dict] = None,
         principal_access: bool = False,
         db_access: bool = False,
         blob_access: bool = False,
@@ -322,6 +324,8 @@ class AzureApp:
             ssl_cert_pem_file=ssl_cert_pem_file,
             ssl_key_pem_file=ssl_key_pem_file,
             ssl_cname=ssl_cname,
+            location=location,
+            tags=tags,
         )
         service = Model.deploy(
             workspace=ws,
