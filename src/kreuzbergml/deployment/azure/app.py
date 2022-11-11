@@ -182,6 +182,7 @@ class AzureApp:
 
     def get_or_create_compute_target(
         self,
+        compute_name: Optional[str] = None,
         vm_size: str = "STANDARD_DS11_V2",
         vm_priority: str = "lowpriority",
         max_nodes: int = 1,
@@ -194,12 +195,14 @@ class AzureApp:
         :param max_nodes: by default, maximum number of nodes is 1. Increasing the number of nodes will increase the costs proportionally.
         :return: a compute target object representing a cluster of one or more computers
         """
+        if not compute_name:
+            compute_name = self.compute_name
         ws = self.get_workspace()
         try:
-            compute_target = ComputeTarget(workspace=ws, name=self.compute_name)
-            logger.info(f"Compute instance '{self.compute_name}' already exists.")
+            compute_target = ComputeTarget(workspace=ws, name=compute_name)
+            logger.info(f"Compute instance '{compute_name}' already exists.")
         except ComputeTargetException:
-            logger.info(f"Creating compute instance '{self.compute_name}'.")
+            logger.info(f"Creating compute instance '{compute_name}'.")
             config = AmlCompute.provisioning_configuration(
                 vm_size=vm_size,
                 vm_priority=vm_priority,
@@ -211,7 +214,7 @@ class AzureApp:
                 provisioning_configuration=config,
             )
             compute_target.wait_for_completion(show_output=True)
-            logger.info(f"Compute instance '{self.compute_name}' has been created.")
+            logger.info(f"Compute instance '{compute_name}' has been created.")
         return compute_target
 
     def delete_compute_instance(self) -> bool:
@@ -237,13 +240,13 @@ class AzureApp:
         return model
 
     def get_env(
-            self,
-            endpoint_azure_name: str,
-            conda_file: str,
-            principal_access: bool = False,
-            db_access: bool = False,
-            blob_access: bool = False,
-            custom_environment_variables: Optional[Dict[str, str]] = None,
+        self,
+        endpoint_azure_name: str,
+        conda_file: str,
+        principal_access: bool = False,
+        db_access: bool = False,
+        blob_access: bool = False,
+        custom_environment_variables: Optional[Dict[str, str]] = None,
     ) -> Environment:
         env = Environment.from_conda_specification(
             name=f"{endpoint_azure_name}-env", file_path=conda_file
@@ -252,7 +255,7 @@ class AzureApp:
             "tenant_id": self.__tenant_id,
             "subscription_id": self.__subscription_id,
             "resource_group": self.__resource_group,
-            "workspace_name": self.__workspace_name,
+            "workspace_id": self.__workspace_name,
             "model_name": self.__model_name,
             "service_principal_id": self.__service_principle_id,
             "service_principal_password": self.__service_principle_password,
@@ -260,23 +263,29 @@ class AzureApp:
             "batch_service_name": self.__batch_service_name,
         }
         if principal_access:
-            env.environment_variables.update({
-                "service_principal_id": self.__service_principal_id,
-                "service_principal_password": self.__service_principal_password,
-            })
+            env.environment_variables.update(
+                {
+                    "service_principal_id": self.__service_principal_id,
+                    "service_principal_password": self.__service_principal_password,
+                }
+            )
         if db_access:
-            env.environment_variables.update({
-                "db_host": self.__db_host,
-                "db_port": self.__db_port,
-                "db_user": self.__db_user,
-                "db_password": self.__db_password,
-                "db_name": self.__db_name,
-            })
+            env.environment_variables.update(
+                {
+                    "db_host": self.__db_host,
+                    "db_port": self.__db_port,
+                    "db_user": self.__db_user,
+                    "db_password": self.__db_password,
+                    "db_name": self.__db_name,
+                }
+            )
         if blob_access:
-            env.environment_variables.update({
-                "blob_string": self.__blob_string,
-                "blob_container": self.__blob_container,
-            })
+            env.environment_variables.update(
+                {
+                    "blob_string": self.__blob_string,
+                    "blob_container": self.__blob_container,
+                }
+            )
         if custom_environment_variables:
             env.environment_variables.update(custom_environment_variables)
         return env
@@ -294,6 +303,8 @@ class AzureApp:
         ssl_cname: Optional[str] = None,
         location: str = "northeurope",
         tags: Optional[dict] = None,
+        deployment_target_compute_name: Optional[str] = None,
+        deployment_target_vm_size: Optional[str] = None,
         principal_access: bool = False,
         db_access: bool = False,
         blob_access: bool = False,
@@ -327,12 +338,20 @@ class AzureApp:
             location=location,
             tags=tags,
         )
+        deployment_target = None
+        if deployment_target_compute_name and deployment_target_vm_size:
+            deployment_target = self.get_or_create_compute_target(
+                compute_name=deployment_target_compute_name,
+                vm_size=deployment_target_vm_size,
+                vm_priority="dedicated",
+            )
         service = Model.deploy(
             workspace=ws,
             name=endpoint_azure_name,
             models=[],
             inference_config=inference_config,
             deployment_config=deployment_config,
+            deployment_target=deployment_target,
             overwrite=True,
             show_output=True,
         )
@@ -357,7 +376,7 @@ class AzureApp:
             conda_file,
             db_access=True,
             blob_access=True,
-            custom_environment_variables=environment_variables
+            custom_environment_variables=environment_variables,
         )
         compute_target = self.get_or_create_compute_target(
             vm_size=vm_size,
