@@ -301,6 +301,7 @@ class AzureApp:
         ssl_cert_pem_file: Optional[str] = None,
         ssl_key_pem_file: Optional[str] = None,
         ssl_cname: Optional[str] = None,
+        auth_primary_key: Optional[str] = None,
         location: str = "northeurope",
         tags: Optional[dict] = None,
         deployment_target_compute_name: Optional[str] = None,
@@ -314,6 +315,7 @@ class AzureApp:
         ssl_enabled = (
             True if ssl_cert_pem_file and ssl_key_pem_file and ssl_cname else False
         )
+        auth_enabled = True if auth_primary_key else False
         env = self.get_env(
             endpoint_azure_name,
             conda_file,
@@ -335,6 +337,8 @@ class AzureApp:
             ssl_cert_pem_file=ssl_cert_pem_file,
             ssl_key_pem_file=ssl_key_pem_file,
             ssl_cname=ssl_cname,
+            auth_enabled=auth_enabled,
+            primary_key=auth_primary_key,
             location=location,
             tags=tags,
         )
